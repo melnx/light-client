@@ -102,6 +102,25 @@ export default class PathfindingServices extends Vue {
     this.loading = true;
     try {
       this.services = await this.$raiden.fetchServices();
+
+
+
+      console.log("SERVICES", this.services);
+
+      this.services.push(
+        {
+            "address": "0xBf955af6f6f7B2920Da19088f9cDDF5AB7e9d4Fc",
+            "url": "http://localhost:3333",
+            "matrixServer": "https://transport.transport01.raiden.network",
+            "rtt": 85,
+            "price": 0,
+            "token": "0x5Fc523e13fBAc2140F056AD7A96De2cC0C4Cc63A",
+            "validTill": 2664982797000
+        }
+      )
+
+      console.log("ADDRESS TYPE", typeof this.services[0].address);
+
       if (this.services.length > 0) {
         const [preSelectedPfs] = this.services;
         this.selected = [preSelectedPfs];

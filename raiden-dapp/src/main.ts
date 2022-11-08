@@ -18,6 +18,11 @@ import { setupLogStore } from './utils/logstore';
 
 Vue.config.productionTip = false;
 
+Vue.prototype.LoggingIntercepter = function(){
+  //console.log("INTERCEPTED MESSAGE");
+  //if(typeof window.Zomg !== 'undefined') window.Zomg();
+}
+
 setupLogStore();
 
 Vue.use(RaidenPlugin);

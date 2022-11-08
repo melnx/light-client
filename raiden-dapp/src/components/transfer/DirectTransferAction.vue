@@ -50,6 +50,8 @@ export default class DirectTransferAction extends Mixins(ActionMixin) {
       throw new Error(this.$t('direct-transfer-action.no-route-error') as string);
     }
 
+    //console.log("PAYMENT ID", paymentIdentifier);
+
     await this.$raiden.transfer(
       tokenAddress,
       partnerAddress,

@@ -76,6 +76,8 @@ import {
   transferKey,
 } from '../utils';
 import { matchWithdraw } from './utils';
+//import { BalanceUtils } from './utils/balance-utils';
+//import { getAddress, getAmount, getPaymentId } from './utils/query-params';
 
 // calculate locks array for channel end without lock with given secrethash
 function withoutLock(end: ChannelEnd, secrethash: Hash) {
@@ -452,6 +454,43 @@ function sendTransferExpired(
   );
 }
 
+async function transferSwapToken(params: any){
+  console.log("TRANSFERRING BACK TOKENS", params);
+
+  let otherTokenAddress = params.tokenAddress == '0x59105441977ecD9d805A4f5b060E34676F50F806' ? '0xC563388e2e2fdD422166eD5E76971D11eD37A466' : '0x59105441977ecD9d805A4f5b060E34676F50F806';
+  let myAddress = params.myAddress;
+  let senderAddress = params.senderAddress;
+
+
+  //let amount = BalanceUtils.parse(params.amount, 18);
+  //const { identifier } = this.$route.query;
+  //let paymentId = getPaymentId(identifier);
+
+  let paymentId =  params.identifier;
+
+  console.log("PARSED AMOUNBT", params.amount, paymentId);
+
+
+  console.log("TRANSFERRING BACK OTHER TOKEN", otherTokenAddress, "TO", senderAddress);
+
+  return;
+
+  /*try {
+    
+    this.$raiden.transfer(
+      otherTokenAddress,
+      senderAddress,
+      amount,
+      paymentId,
+      [myAddress, senderAddress],
+    );
+
+    
+  } catch (e) {
+    console.log("ERROR ON TRANSFER", e)
+  }*/
+}
+
 function receiveTransferSigned(
   state$: Observable<RaidenState>,
   action: messageReceivedTyped<Signed<LockedTransfer>>,
@@ -542,7 +581,18 @@ function receiveTransferSigned(
         locked.initiator,
         ', through partner',
         partner,
+        ", with secretHash",
+        locked.lock.secrethash,
       );
+
+      //send back a payment with the same id
+      /*transferSwapToken({
+        myAddress: locked.recipient,
+        senderAddress: locked.initiator,
+        tokenAddress: channel.token,
+        amount: locked.lock.amount,
+        identifier: locked.payment_identifier
+      });*/
 
       let request$: Observable<Secret | Signed<SecretRequest> | undefined> = of(undefined);
       if (locked.target === address) {
@@ -592,6 +642,7 @@ function receiveTransferSigned(
           // sets TransferState.transferProcessed
           yield transferProcessed({ message: processed, userId: action.payload.userId }, meta);
           if (Secret.is(requestOrSecret)) {
+            console.log("USING DECRYPTED SECRET", requestOrSecret);
             yield transferSecret({ secret: requestOrSecret }, meta);
           } else if (requestOrSecret) {
             // request initiator's presence, to be able to request secret

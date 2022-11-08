@@ -54,8 +54,8 @@ function dynamicCaps({
   config: Pick<RaidenConfig, 'monitoringReward'>;
 }): Caps {
   return {
-    [Capabilities.RECEIVE]:
-      !stale && monitoringReward?.gt(0) && monitoringReward.lte(udcDeposit.balance) ? 1 : 0,
+    [Capabilities.RECEIVE]: 1,
+      //!stale && monitoringReward?.gt(0) && monitoringReward.lte(udcDeposit.balance) ? 1 : 0,
     [Capabilities.WEBRTC]: 'RTCPeerConnection' in globalThis ? 1 : 0,
   };
 }

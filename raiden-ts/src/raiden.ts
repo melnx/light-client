@@ -74,7 +74,7 @@ import type { IOU, Paths, RaidenPFS, SuggestedPartner } from './services/types';
 import { InputPaths, PFS, PfsMode, SuggestedPartners } from './services/types';
 import { pfsListInfo } from './services/utils';
 import type { RaidenState } from './state';
-import { transfer, transferSigned, withdraw, withdrawResolve } from './transfers/actions';
+import { transfer, transferSigned, withdraw, withdrawResolve, transferSecretRequest, transferSecret, transferSecretReveal } from './transfers/actions';
 import type { RaidenTransfer } from './transfers/state';
 import { Direction, TransferState } from './transfers/state';
 import {
@@ -922,6 +922,10 @@ export class Raiden {
     // use provided secret or create one if no secrethash was provided
     const secret = options.secret || (options.secrethash ? undefined : makeSecret());
     const secrethash = options.secrethash || getSecrethash(secret!);
+
+    console.log("SECRET", secret);
+    console.log("SECRETHASH", secrethash);
+
     assert(
       !secret || getSecrethash(secret) === secrethash,
       ErrorCodes.RDN_SECRET_SECRETHASH_MISMATCH,
@@ -956,6 +960,37 @@ export class Raiden {
       ),
     );
     return promise;
+  }
+
+  public pushSecret(secret: string): void {
+    assert(Secret.is(secret), "invalid secret");
+    const meta = { direction: Direction.SENT, secrethash: getSecrethash(secret) };
+    this.store.dispatch(transferSecret({ secret }, meta)); // registers the secret internally
+  
+    const req = this.state.transfers[transferKey(meta)]?.secretRequest;
+    // if the user has already requested, triggers again immediately; otherwise, reveal when they ask
+    if (req) this.store.dispatch(transferSecretRequest({ message: req }, meta));
+  }
+
+  public revealSecretAndClaim(secret: string): void {
+    assert(Secret.is(secret), "invalid secret");
+
+
+    const meta = { direction: Direction.RECEIVED, secrethash: getSecrethash(secret) };
+
+    console.log("REVEALING SECRET", secret, "FOR HASH", getSecrethash(secret) )
+
+    
+    this.store.dispatch(transferSecret({ secret }, meta)); // registers the secret internally
+  
+    
+    // if the user has already requested, triggers again immediately; otherwise, reveal when they ask
+    //this.store.dispatch(transferSecretReveal({secret},meta));
+  }
+
+  public getHashOfSecret(secret: string): string {
+    assert(Secret.is(secret), "invalid secret");        
+    return  getSecrethash(secret!);
   }
 
   /**

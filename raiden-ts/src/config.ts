@@ -142,8 +142,8 @@ export function makeDefaultConfig(
     overwrites?.caps === null
       ? null
       : {
-          [Capabilities.DELIVERY]: 0,
-          [Capabilities.MEDIATE]: 0,
+          [Capabilities.DELIVERY]: 1,
+          [Capabilities.MEDIATE]: 1,
           [Capabilities.TO_DEVICE]: 1,
           [Capabilities.IMMUTABLE_METADATA]: 1,
           ...overwrites?.caps,

@@ -42,6 +42,7 @@ declare global {
   interface Window {
     web3: any;
     ethereum: any;
+    logInterceptor: any;
   }
 
   interface BeforeInstallPromptEvent extends Event {

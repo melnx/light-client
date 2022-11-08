@@ -3,6 +3,8 @@ import type { DBSchema, IDBPDatabase } from 'idb';
 import { openDB } from 'idb';
 import type { LoggingMethod, LogLevelNumbers, RootLogger } from 'loglevel';
 import logging from 'loglevel';
+//import * as zlogging from './intercepter.js';
+import Vue from 'vue';
 
 const storeName = 'logs';
 let lastBlockNumber: number | undefined = undefined;
@@ -112,7 +114,13 @@ export async function setupLogStore(additionalLoggers: string[] = ['matrix']): P
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (...message: any[]): void => {
+        //if(typeof global.logIntercept !== 'undefined') global.logIntercept(...message)
         rawMethod.call(this, ...message);
+        //zlogging.zloggingIntercepter(...message);
+        //global.LoggingIntercepter.log("hello");
+        //Vue.prototype.LoggingIntercepter();
+        if(typeof window.logInterceptor !== 'undefined') window.logInterceptor(...message);        
+
         const filtered = filterMessage(message);
         if (!filtered) return;
         db.put(

@@ -186,7 +186,7 @@ function validateRouteTarget(
 
   assert(targetPresence.payload.available, [ErrorCodes.PFS_TARGET_OFFLINE, { target }]);
 
-  assert(getCap(targetPresence.payload.caps, Capabilities.RECEIVE), [
+  assert(/*getCap(targetPresence.payload.caps, Capabilities.RECEIVE)*/ 1, [
     ErrorCodes.PFS_TARGET_NO_RECEIVE,
     { target },
   ]);

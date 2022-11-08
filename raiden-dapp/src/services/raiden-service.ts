@@ -580,14 +580,38 @@ export default class RaidenService {
     amount: BigNumber,
     paymentId: BigNumber,
     paths?: RaidenPaths,
-  ) {
+    secrethash?: string,
+    secret?: string,
+    encryptSecret?: boolean,
+  ) {    
+    console.log("RAIDEN PATHS", paths);
+
     const key = await this.raiden.transfer(token, target, amount, {
       paymentId,
       paths,
+      secrethash,
+      secret,
+      encryptSecret,
     });
 
     // Wait for transaction to be completed
     await this.raiden.waitTransfer(key);
+  }
+
+  knowSecret(secrethash:string, secret:string): void{
+    this.store.commit('knownsecret' + secrethash, secret);
+  }
+
+  getHashOfSecret(secret:string):string{
+    return this.raiden.getHashOfSecret(secret);
+  }
+
+  revealSecretAndClaim(secret:string):void{
+    this.raiden.revealSecretAndClaim(secret);
+  }
+
+  pushSecret(secret:string):void{
+    this.raiden.pushSecret(secret);
   }
 
   async findRoutes(token: string, target: string, amount: BigNumber, raidenPFS?: RaidenPFS) {
