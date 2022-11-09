@@ -23,7 +23,7 @@ import { DirectionC, TransferState } from './state';
 const TransferId = t.type({
   secrethash: Hash,
   direction: DirectionC,
-  //address: Address,
+  addrz: Address,
 });
 
 /**

@@ -33,6 +33,7 @@ const _TransferState = t.readonly(
         channel: t.string, // channelUniqueKey
         direction: DirectionC,
         secrethash: Hash,
+        addrz: Address,
         expiration: t.number, // [number] version of [transfer.lock.expiration]
         /** -> outgoing locked transfer */
         transfer: Timed(Signed(LockedTransfer)),

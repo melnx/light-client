@@ -30,7 +30,7 @@ import {
   distinctRecordValues,
   pluckDistinct,
 } from '../../utils/rx';
-import type { Hash } from '../../utils/types';
+import type { Hash, Address } from '../../utils/types';
 import { untime } from '../../utils/types';
 import {
   transfer,
@@ -75,6 +75,7 @@ export function initQueuePendingEnvelopeMessagesEpic(
       const meta = {
         secrethash: transferState.transfer.lock.secrethash,
         direction: Direction.SENT,
+        addrz: transferState.transfer.token_network_address,
       };
       // on init, request monitor presence of any pending transfer target
       yield matrixPresence.request(undefined, { address: transferState.transfer.target });
@@ -135,7 +136,7 @@ export function initQueuePendingReceivedEpic(
     mergeMap((transferState) => {
       // loop over all pending transfers
       const secrethash = transferState.transfer.lock.secrethash;
-      const meta = { secrethash, direction: Direction.RECEIVED };
+      const meta = { secrethash, direction: Direction.RECEIVED, addrz: transferState.transfer.token_network_address };
       return merge(
         // on init, request monitor presence of any pending transfer initiator
         of(
@@ -238,7 +239,7 @@ export function transferRequestResolveEpic(
 function hasTransferMeta(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   action: any,
-): action is { meta: { secrethash: Hash; direction: Direction } } {
+): action is { meta: { secrethash: Hash; direction: Direction, addrz: Address } } {
   return 'meta' in action && action.meta?.secrethash && action.meta?.direction;
 }
 
@@ -279,7 +280,7 @@ export function transferClearCompletedEpic(
           action$.pipe(
             filter(hasTransferMeta),
             filter((action) => transferKey(action.meta) === grouped$.key),
-            startWith({ meta: pick(transfer, ['secrethash', 'direction'] as const) }),
+            startWith({ meta: pick(transfer, ['secrethash', 'direction', 'addrz'] as const) }),
             completeWith(grouped$),
           ),
         ),

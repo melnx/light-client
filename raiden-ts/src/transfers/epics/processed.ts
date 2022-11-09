@@ -43,7 +43,7 @@ export function transferProcessedReceivedEpic(
         )
           continue;
 
-        const meta = { secrethash: transferState.secrethash, direction: Direction.SENT };
+        const meta = { secrethash: transferState.secrethash, direction: Direction.SENT, addrz: transferState.addrz };
         if (
           action.payload.message.message_identifier.eq(transferState.transfer.message_identifier)
         ) {

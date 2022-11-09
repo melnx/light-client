@@ -97,24 +97,30 @@ export function makeMessageId(): UInt<8> {
  * @returns string containing a unique key for transfer
  */
 export function transferKey(
-  state: TransferState | { secrethash: Hash; direction: Direction },
+  state: TransferState | { secrethash: Hash; direction: Direction, addrz: Address },
 ): string {
   if ('_id' in state) return state._id;
+  return `${state.direction}:${state.secrethash}:${state.addrz}`;
+}
+
+export function transferKeyPartial(
+  state:  { secrethash: Hash; direction: Direction },
+): string {  
   return `${state.direction}:${state.secrethash}`;
 }
 
-const keyRe = new RegExp(`^(${Object.values(Direction).join('|')}):(0x[a-f0-9]{64})$`, 'i');
+const keyRe = new RegExp(`^(${Object.values(Direction).join('|')}):(0x[a-f0-9]{64})$::(0x[a-f0-9]{64})$`, 'i');
 /**
  * Parse a transferKey into a TransferId object ({ secrethash, direction })
  *
  * @param key - string to parse as transferKey
  * @returns secrethash, direction contained in transferKey
  */
-export function transferKeyToMeta(key: string): { secrethash: Hash; direction: Direction } {
+export function transferKeyToMeta(key: string): { secrethash: Hash; direction: Direction, addrz: Address } {
   const match = key.match(keyRe);
   assert(match, 'Invalid transferKey format');
-  const [, direction, secrethash] = match;
-  return { direction: direction as Direction, secrethash: secrethash as Hash };
+  const [, direction, secrethash, address] = match;
+  return { direction: direction as Direction, secrethash: secrethash as Hash, addrz: address as Address };
 }
 
 const statusesMap: { [K in RaidenTransferStatus]: (t: TransferState) => number | undefined } = {
@@ -254,7 +260,7 @@ export function findBalanceProofMatchingBalanceHash$(
 export async function getTransfer(
   state: RaidenState | Observable<RaidenState>,
   db: RaidenDatabase,
-  key: string | { secrethash: Hash; direction: Direction },
+  key: string | { secrethash: Hash; direction: Direction, addrz: Address },
 ): Promise<TransferState> {
   if (typeof key !== 'string') key = transferKey(key);
   if (!('address' in state)) state = await firstValueFrom(state);

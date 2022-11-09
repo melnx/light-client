@@ -41,7 +41,7 @@ import {
   transferUnlock,
 } from '../actions';
 import { Direction } from '../state';
-import { getSecrethash, makeMessageId, searchValidViaAddress, transferKey } from '../utils';
+import { getSecrethash, makeMessageId, searchValidViaAddress, transferKey, transferKeyPartial } from '../utils';
 import { dispatchAndWait$ } from './utils';
 
 /**
@@ -66,25 +66,34 @@ export function transferSecretRequestedEpic(
     mergeMap(function* ([action, state]) {
       const message = action.payload.message;
       // proceed only if we know the secret and the SENT transfer
-      const key = transferKey({ secrethash: message.secrethash, direction: Direction.SENT });
-      const transferState = state.transfers[key];
-      if (!transferState) return;
+      
+      //const key = transferKey({ secrethash: message.secrethash, direction: Direction.SENT });
+      let partialKey = transferKeyPartial({ secrethash: message.secrethash, direction: Direction.SENT });
 
-      const locked = transferState.transfer;
-      // we do only some basic verification here, as most of it is done upon SecretReveal,
-      // to persist the request in most cases in TransferState.secretRequest
-      if (
-        locked.initiator !== address || // only the initiator may reply a SecretRequest
-        locked.target !== action.meta.address || // reveal only to target
-        !locked.payment_identifier.eq(message.payment_identifier)
-      ) {
-        log.warn('Invalid SecretRequest for transfer', message, locked);
-        return;
+      let partialMatches = Object.keys(state.transfers).filter(x => x.startsWith(partialKey));
+      
+      for(var key of partialMatches){        
+        const transferState = state.transfers[key];
+        if (!transferState) continue;//return;
+
+        const locked = transferState.transfer;
+        // we do only some basic verification here, as most of it is done upon SecretReveal,
+        // to persist the request in most cases in TransferState.secretRequest
+        if (
+          locked.initiator !== address || // only the initiator may reply a SecretRequest
+          locked.target !== action.meta.address || // reveal only to target
+          !locked.payment_identifier.eq(message.payment_identifier)
+        ) {
+          log.warn('Invalid SecretRequest for transfer', message, locked);
+          //return;
+          continue;
+        }
+      
+        yield transferSecretRequest(
+          { message, userId: action.payload.userId },
+          { secrethash: message.secrethash, direction: Direction.SENT, addrz: locked.token_network_address },
+        );
       }
-      yield transferSecretRequest(
-        { message, userId: action.payload.userId },
-        { secrethash: message.secrethash, direction: Direction.SENT },
-      );
     }),
   );
 }
@@ -206,13 +215,23 @@ export function transferSecretRevealedEpic(
     filter(isMessageReceivedOfType(SecretReveal)),
     withLatestFrom(state$, config$),
     mergeMap(function* ([action, state, { caps }]) {
+
+
+
       const secrethash = getSecrethash(action.payload.message.secret);
-      const results = Object.values(Direction)
-        .map((direction) => state.transfers[transferKey({ secrethash, direction })])
+
+      let results = Object.keys(state.transfers)
+        .filter(x => x.includes( secrethash ) )
+        .map(key => state.transfers[key])
         .filter(isntNil);
+
+      /*const results = Object.values(Direction)
+        .map((direction) => state.transfers[transferKey({ secrethash, direction })])
+        .filter(isntNil);*/
+
       const message = action.payload.message;
       for (const sent of results.filter((doc) => doc.direction === Direction.SENT)) {
-        const meta = { secrethash, direction: Direction.SENT };
+        const meta = { secrethash, direction: Direction.SENT, addrz: sent.addrz };
         // if secrethash matches, we're good for persisting, don't care for sender/signature
         yield transferSecret({ secret: message.secret }, meta);
 
@@ -238,7 +257,7 @@ export function transferSecretRevealedEpic(
         // if secrethash matches, we're good for persisting, which also triggers Reveal back
         yield transferSecret(
           { secret: message.secret },
-          { secrethash, direction: Direction.RECEIVED },
+          { secrethash, direction: Direction.RECEIVED, addrz: _received.addrz },
         );
       }
     }),
@@ -338,21 +357,27 @@ export function monitorSecretRegistryEpic(
     ]) {
       // find sent|received transfers matching secrethash and secret registered before expiration
       for (const direction of Object.values(Direction)) {
-        const key = transferKey({ secrethash: secrethash as Hash, direction });
-        const transferState = transfers[key];
-        if (!transferState) continue;
-        yield transferSecretRegister.success(
-          {
-            secret: secret as Secret,
-            txHash: event.transactionHash! as Hash,
-            txBlock: event.blockNumber!,
-            confirmed:
-              event.blockNumber! + confirmationBlocks <= blockNumber
-                ? event.blockNumber! < transferState.expiration // false is like event got reorged/removed
-                : undefined,
-          },
-          { secrethash: secrethash as Hash, direction },
-        );
+        
+        //const key = transferKey({ secrethash: secrethash as Hash, direction });
+        const keyPartial = transferKeyPartial({ secrethash: secrethash as Hash, direction });
+        let partialMatches = Object.keys(transfers).filter(x => x.startsWith(keyPartial))
+
+        for(var key of partialMatches){
+          const transferState = transfers[key];
+          if (!transferState) continue;
+          yield transferSecretRegister.success(
+            {
+              secret: secret as Secret,
+              txHash: event.transactionHash! as Hash,
+              txBlock: event.blockNumber!,
+              confirmed:
+                event.blockNumber! + confirmationBlocks <= blockNumber
+                  ? event.blockNumber! < transferState.expiration // false is like event got reorged/removed
+                  : undefined,
+            },
+            { secrethash: secrethash as Hash, direction, addrz: transferState.addrz },
+          );
+        }
       }
     }),
   );
@@ -429,7 +454,7 @@ export function transferAutoRegisterEpic(
     mergeMap((grouped$) =>
       grouped$.pipe(
         exhaustMap((transferState) => {
-          const meta = { secrethash: transferState.secrethash, direction: Direction.RECEIVED };
+          const meta = { secrethash: transferState.secrethash, direction: Direction.RECEIVED, addrz: transferState.addrz };
           // "hold" this (per transfer) exhaustMap until getting a response for the request
           return dispatchAndWait$(
             action$,

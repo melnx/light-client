@@ -52,7 +52,7 @@ export function transferAutoExpireEpic(
         ),
       ).pipe(
         mergeMap((doc) => {
-          const meta = { secrethash: doc.transfer.lock.secrethash, direction: Direction.SENT };
+          const meta = { secrethash: doc.transfer.lock.secrethash, direction: Direction.SENT, addrz: doc.transfer.token_network_address };
           // this observable acts like a Promise: emits request once, completes on success/failure
           return merge(
             dispatchAndWait$(

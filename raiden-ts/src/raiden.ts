@@ -956,15 +956,15 @@ export class Raiden {
           lockTimeout: options.lockTimeout,
           encryptSecret: options.encryptSecret,
         },
-        { secrethash, direction: Direction.SENT },
+        { secrethash, direction: Direction.SENT, addrz: target },
       ),
     );
     return promise;
   }
 
-  public pushSecret(secret: string): void {
+  public pushSecret(secret: string, target: Address): void {
     assert(Secret.is(secret), "invalid secret");
-    const meta = { direction: Direction.SENT, secrethash: getSecrethash(secret) };
+    const meta = { direction: Direction.SENT, secrethash: getSecrethash(secret), addrz: target };
     this.store.dispatch(transferSecret({ secret }, meta)); // registers the secret internally
   
     const req = this.state.transfers[transferKey(meta)]?.secretRequest;
@@ -972,11 +972,11 @@ export class Raiden {
     if (req) this.store.dispatch(transferSecretRequest({ message: req }, meta));
   }
 
-  public revealSecretAndClaim(secret: string): void {
+  public revealSecretAndClaim(secret: string, target: Address): void {
     assert(Secret.is(secret), "invalid secret");
 
 
-    const meta = { direction: Direction.RECEIVED, secrethash: getSecrethash(secret) };
+    const meta = { direction: Direction.RECEIVED, secrethash: getSecrethash(secret), addrz: target };
 
     console.log("REVEALING SECRET", secret, "FOR HASH", getSecrethash(secret) )
 
@@ -1001,7 +1001,7 @@ export class Raiden {
    * @returns Promise to final RaidenTransfer
    */
   public async waitTransfer(transferKey: string): Promise<RaidenTransfer> {
-    const { direction, secrethash } = transferKeyToMeta(transferKey);
+    const { direction, secrethash, addrz } = transferKeyToMeta(transferKey);
     let transferState = this.state.transfers[transferKey];
     if (!transferState)
       try {
@@ -1018,7 +1018,7 @@ export class Raiden {
     }
 
     // throws/rejects if a failure occurs
-    await asyncActionToPromise(transfer, { secrethash, direction }, this.action$);
+    await asyncActionToPromise(transfer, { secrethash, direction, addrz }, this.action$);
     const finalState = await firstValueFrom(
       this.state$.pipe(
         pluck('transfers', transferKey),

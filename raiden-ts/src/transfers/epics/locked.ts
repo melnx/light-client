@@ -504,7 +504,10 @@ function receiveTransferSigned(
   | transferSecret
 > {
   const secrethash = action.payload.message.lock.secrethash;
-  const meta = { secrethash, direction: Direction.RECEIVED };
+
+  const lockedz: Signed<LockedTransfer> = action.payload.message;
+  const meta = { secrethash, direction: Direction.RECEIVED, addrz: lockedz.token_network_address  };
+
   return combineLatest([state$, config$]).pipe(
     first(),
     mergeMap(([state, { revealTimeout, caps }]) => {
@@ -668,8 +671,9 @@ function receiveTransferUnlocked(
   action: messageReceivedTyped<Signed<Unlock>>,
   { log, signer, db }: RaidenEpicDeps,
 ) {
+  const unlockz: Signed<Unlock> = action.payload.message;
   const secrethash = getSecrethash(action.payload.message.secret);
-  const meta = { secrethash, direction: Direction.RECEIVED };
+  const meta = { secrethash, direction: Direction.RECEIVED, addrz: unlockz.token_network_address  };
   // db.get will throw if not found, being handled on final catchError
   return defer(() => getTransfer(state$, db, meta)).pipe(
     withLatestFrom(state$),
@@ -698,7 +702,7 @@ function receiveTransferUnlocked(
           );
         } else return EMPTY;
       }
-      const locked = transferState.transfer;
+      const locked: Signed<LockedTransfer> = transferState.transfer;
       assert(unlock.token_network_address === locked.token_network_address, 'wrong tokenNetwork');
 
       // unlock validation
@@ -753,7 +757,8 @@ function receiveTransferExpired(
   { log, signer, config$, db }: RaidenEpicDeps,
 ) {
   const secrethash = action.payload.message.secrethash;
-  const meta = { secrethash, direction: Direction.RECEIVED };
+  const token_network_address = action.payload.message.token_network_address;
+  const meta = { secrethash, direction: Direction.RECEIVED, addrz: token_network_address  };
   // db.get will throw if not found, being handled on final catchError
   return defer(() => getTransfer(state$, db, meta)).pipe(
     withLatestFrom(state$, config$),

@@ -52,11 +52,11 @@ describe('mediate transfers', () => {
           secret,
           ...metadataFromClients([raiden, partner, target], flat),
         },
-        { secrethash, direction: Direction.SENT },
+        { secrethash, direction: Direction.SENT, addrz:tokenNetwork },
       ),
     );
     await expect(promise).resolves.toEqual(
-      transfer.success(expect.anything(), { secrethash, direction: Direction.RECEIVED }),
+      transfer.success(expect.anything(), { secrethash, direction: Direction.RECEIVED, addrz:tokenNetwork }),
     );
     const transf = (await getOrWaitTransfer(raiden, { secrethash, direction: Direction.SENT }))
       .transfer;
@@ -80,7 +80,7 @@ describe('mediate transfers', () => {
           fee: Zero as Int<32>,
           partner: raiden.address,
         },
-        { secrethash, direction: Direction.RECEIVED },
+        { secrethash, direction: Direction.RECEIVED, addrz: tokenNetwork },
       ),
     );
     expect(partner.output.find(transfer.request.is)).toEqual(
@@ -104,7 +104,7 @@ describe('mediate transfers', () => {
           partner: target.address,
           userId: (await firstValueFrom(target.deps.matrix$)).getUserId()!,
         },
-        { secrethash, direction: Direction.SENT },
+        { secrethash, direction: Direction.SENT, addrz: tokenNetwork },
       ),
     );
   });
@@ -139,11 +139,11 @@ describe('mediate transfers', () => {
           secret,
           ...metadataFromClients([raiden, partner, target], flat),
         },
-        { secrethash, direction: Direction.SENT },
+        { secrethash, direction: Direction.SENT, addrz: tokenNetwork },
       ),
     );
     await expect(promise).resolves.toEqual(
-      transfer.success(expect.anything(), { secrethash, direction: Direction.RECEIVED }),
+      transfer.success(expect.anything(), { secrethash, direction: Direction.RECEIVED, addrz:tokenNetwork }),
     );
     const transf = (await getOrWaitTransfer(raiden, { secrethash, direction: Direction.SENT }))
       .transfer;
@@ -167,7 +167,7 @@ describe('mediate transfers', () => {
           fee: Zero as Int<32>,
           partner: raiden.address,
         },
-        { secrethash, direction: Direction.RECEIVED },
+        { secrethash, direction: Direction.RECEIVED, addrz: tokenNetwork },
       ),
     );
     expect(partner.output.find(transfer.request.is)).toEqual(
@@ -192,7 +192,7 @@ describe('mediate transfers', () => {
           partner: target.address,
           userId: (await firstValueFrom(target.deps.matrix$)).getUserId()!,
         },
-        { secrethash, direction: Direction.SENT },
+        { secrethash, direction: Direction.SENT, addrz: tokenNetwork },
       ),
     );
   });
@@ -224,12 +224,12 @@ describe('mediate transfers', () => {
           secret,
           ...metadataFromClients([raiden, partner, target], Zero as Int<32>),
         },
-        { secrethash, direction: Direction.SENT },
+        { secrethash, direction: Direction.SENT, addrz: tokenNetwork },
       ),
     );
     await sleep(raiden.config.httpTimeout);
     expect(target.output).not.toContainEqual(
-      transferSigned(expect.anything(), { secrethash, direction: Direction.RECEIVED }),
+      transferSigned(expect.anything(), { secrethash, direction: Direction.RECEIVED, addrz: tokenNetwork }),
     );
     // mediated transfer received
     expect(partner.output).toContainEqual(
@@ -243,12 +243,12 @@ describe('mediate transfers', () => {
           fee: Zero as Int<32>,
           partner: raiden.address,
         },
-        { secrethash, direction: Direction.RECEIVED },
+        { secrethash, direction: Direction.RECEIVED, addrz:tokenNetwork },
       ),
     );
     // but not forwarded
     expect(partner.output).not.toContainEqual(
-      transfer.request(expect.anything(), { secrethash, direction: Direction.SENT }),
+      transfer.request(expect.anything(), { secrethash, direction: Direction.SENT, addrz:tokenNetwork }),
     );
   });
 
@@ -272,12 +272,12 @@ describe('mediate transfers', () => {
           secret,
           ...metadataFromClients([raiden, partner, unknownTarget], Zero as Int<32>),
         },
-        { secrethash, direction: Direction.SENT },
+        { secrethash, direction: Direction.SENT, addrz:tokenNetwork },
       ),
     );
     await sleep(raiden.config.httpTimeout);
     expect(target.output).not.toContainEqual(
-      transferSigned(expect.anything(), { secrethash, direction: Direction.RECEIVED }),
+      transferSigned(expect.anything(), { secrethash, direction: Direction.RECEIVED, addrz:tokenNetwork }),
     );
     // mediated transfer received
     expect(partner.output).toContainEqual(
@@ -291,12 +291,12 @@ describe('mediate transfers', () => {
           fee: Zero as Int<32>,
           partner: raiden.address,
         },
-        { secrethash, direction: Direction.RECEIVED },
+        { secrethash, direction: Direction.RECEIVED, addrz: tokenNetwork },
       ),
     );
     // but not forwarded
     expect(partner.output).not.toContainEqual(
-      transfer.request(expect.anything(), { secrethash, direction: Direction.SENT }),
+      transfer.request(expect.anything(), { secrethash, direction: Direction.SENT, addrz:tokenNetwork }),
     );
   });
 });

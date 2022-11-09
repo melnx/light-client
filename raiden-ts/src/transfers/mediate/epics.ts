@@ -152,7 +152,7 @@ export function transferMediateEpic(
           initiator: message.initiator,
           ...outVia,
         },
-        { secrethash, direction: Direction.SENT },
+        { secrethash, direction: Direction.SENT, addrz: message.token_network_address },
       );
     }),
     filter(isntNil),
