@@ -109,14 +109,15 @@ export function transferKeyPartial(
   return `${state.direction}:${state.secrethash}`;
 }
 
-const keyRe = new RegExp(`^(${Object.values(Direction).join('|')}):(0x[a-f0-9]{64})$::(0x[a-f0-9]{64})$`, 'i');
+const keyRe = new RegExp(`^(${Object.values(Direction).join('|')}):(0x[a-f0-9]{64}):(0x[a-f0-9]{40})$`, 'i');
 /**
  * Parse a transferKey into a TransferId object ({ secrethash, direction })
  *
  * @param key - string to parse as transferKey
  * @returns secrethash, direction contained in transferKey
  */
-export function transferKeyToMeta(key: string): { secrethash: Hash; direction: Direction, addrz: Address } {
+export function transferKeyToMeta(key: string): { secrethash: Hash; direction: Direction, addrz: Address } {  
+  console.log("TRANSFER KEY", key);
   const match = key.match(keyRe);
   assert(match, 'Invalid transferKey format');
   const [, direction, secrethash, address] = match;

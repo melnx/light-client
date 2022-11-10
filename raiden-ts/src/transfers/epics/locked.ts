@@ -586,6 +586,10 @@ function receiveTransferSigned(
         partner,
         ", with secretHash",
         locked.lock.secrethash,
+        ", to your address",
+        locked.recipient,
+        "on token network",
+        locked.token_network_address,
       );
 
       //send back a payment with the same id

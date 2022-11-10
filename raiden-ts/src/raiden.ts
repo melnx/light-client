@@ -925,6 +925,7 @@ export class Raiden {
 
     console.log("SECRET", secret);
     console.log("SECRETHASH", secrethash);
+    console.log("TOKEN NETWORK", tokenNetwork);
 
     assert(
       !secret || getSecrethash(secret) === secrethash,
@@ -938,6 +939,7 @@ export class Raiden {
         filter(({ meta }) => meta.direction === Direction.SENT && meta.secrethash === secrethash),
         map((action) => {
           if (transfer.failure.is(action)) throw action.payload;
+          console.log("TRANSFER META", action.meta)
           return transferKey(action.meta);
         }),
       ),
@@ -956,15 +958,17 @@ export class Raiden {
           lockTimeout: options.lockTimeout,
           encryptSecret: options.encryptSecret,
         },
-        { secrethash, direction: Direction.SENT, addrz: target },
+        { secrethash, direction: Direction.SENT, addrz: tokenNetwork },
       ),
     );
     return promise;
   }
 
-  public pushSecret(secret: string, target: Address): void {
+  public pushSecret(secret: string, tokenNetwork: string): void {
     assert(Secret.is(secret), "invalid secret");
-    const meta = { direction: Direction.SENT, secrethash: getSecrethash(secret), addrz: target };
+    assert(Address.is(tokenNetwork), "invalid tokenNetwork");
+
+    const meta = { direction: Direction.SENT, secrethash: getSecrethash(secret), addrz: tokenNetwork };
     this.store.dispatch(transferSecret({ secret }, meta)); // registers the secret internally
   
     const req = this.state.transfers[transferKey(meta)]?.secretRequest;
@@ -972,11 +976,11 @@ export class Raiden {
     if (req) this.store.dispatch(transferSecretRequest({ message: req }, meta));
   }
 
-  public revealSecretAndClaim(secret: string, target: Address): void {
+  public revealSecretAndClaim(secret: string, tokenNetwork: string): void {
     assert(Secret.is(secret), "invalid secret");
+    assert(Address.is(tokenNetwork), "invalid tokenNetwork");
 
-
-    const meta = { direction: Direction.RECEIVED, secrethash: getSecrethash(secret), addrz: target };
+    const meta = { direction: Direction.RECEIVED, secrethash: getSecrethash(secret), addrz: tokenNetwork};
 
     console.log("REVEALING SECRET", secret, "FOR HASH", getSecrethash(secret) )
 

@@ -3,13 +3,15 @@ genRanHex = size => [...Array(size)].map(() => Math.floor(Math.random() * 16).to
 
 genSecret = () => '0x' + genRanHex(64);
 
-window.myaddress = '0x00000';
 if(!window.knownSecrets){ 
     window.knownSecrets = {};
 }
 
 window.matchOrder = function(secrethash, amount, token, maker, taker){
     if(amount == '3000000000000000'){
+
+        let token2 = token==window.tokens[0] ? window.tokens[1] : window.tokens[0];
+
         return {
             secrethash: secrethash,
 
@@ -19,7 +21,7 @@ window.matchOrder = function(secrethash, amount, token, maker, taker){
 
             taker: taker,
             amount2: amount,
-            token2: token,
+            token2: token2,
         }
     }else{
         return null;
@@ -28,8 +30,9 @@ window.matchOrder = function(secrethash, amount, token, maker, taker){
 
 window.logInterceptor = function(){
     
+    let cmd = arguments[0];
     
-    if(arguments[0].includes("action")){
+    if(typeof cmd == 'string' && cmd.includes("action")){
         //console.log("INTERCEPTED");
         //console.log("ACTION", arguments[2]);   
 
@@ -56,7 +59,7 @@ window.logInterceptor = function(){
                 //$vm0.$raiden.revealSecretAndClaim(secret);
             }
         }                
-    }else if(arguments[0] == "Receiving transfer of value"){        
+    }else if(cmd == "Receiving transfer of value"){        
         //window.emulateSendInputs(arguments);    
         console.log("INCOMING PAYMENT");
         console.log("ARGS", arguments);
@@ -65,18 +68,20 @@ window.logInterceptor = function(){
         let token = arguments[3];
         let sender = arguments[5];
         let secrethash = arguments[9];
+        let myaddress = arguments[11];
+        let tokennetwork = arguments[13];
 
         console.log("AMOUNT", amount);
         console.log("SENDER", sender);
         console.log("TOKEN", token);
         console.log("SECRET HASH", secrethash);
-
+        console.log("TOKEN NETWORK", tokennetwork);
                 
         if(!knownSecrets[secrethash]){
             //if you dont know the secret for this payment send back equivalent payment                       
             let order = matchOrder(secrethash, amount, token, sender, myaddress);
 
-            if(amount == order.amount){
+            if(order && amount == order.amount){
                 setTimeout(function(){   
                     transferTokens(sender, order.token2, order.amount2, secrethash, true);
 
@@ -89,12 +94,12 @@ window.logInterceptor = function(){
                 }, 15000);
             }
         }else{
-            //otherwise claim your payment from the taker
+            //otherwise claim your payment from the taker and reveal the secret
             let order = matchOrder(secrethash, amount, token, myaddress, sender);
 
-            if(amount == order.amount2){
+            if(order && amount == order.amount2){
                 setTimeout(function(){
-                    $vm0.$raiden.revealSecretAndClaim(knownSecrets[secrethash]);
+                    $vm0.$raiden.revealSecretAndClaim(knownSecrets[secrethash], tokennetwork);
 
                     setTimeout(function(){
                         console.log(`
@@ -113,40 +118,55 @@ window.logInterceptor = function(){
     }
 }
 
+window.getJsomFromUrl = function(url, callback) {
+    var xhr = new XMLHttpRequest();
+
+    xhr.open('GET', url, true);  
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest'); 
+    xhr.setRequestHeader('Access-Control-Allow-Origin', '*');  
+    //xhr.responseType = 'json';
+    xhr.onload = function() {
+      var status = xhr.status;
+      if (status === 200) {
+        callback(null, xhr.response);
+      } else {
+        callback(status, xhr.response);
+      }
+    };
+    xhr.send();
+};
+window.getAddressMetadata = function(address){
+    getJsomFromUrl(`https://pfs.transport01.raiden.network/api/v1/address/${address}/metadata`, function(status, data){
+        console.log(JSON.parse(data));
+    })
+}
+
 window.generatePaths = function(reverse){
-    let known_addresses = {
-        "0x45E3aC98Ad7590d1E84db4aE9CE146C878ba773a": {
-            "user_id": "@0x45e3ac98ad7590d1e84db4ae9ce146c878ba773a:transport.transport01.raiden.network",
-            "displayname": "0xe17bbdb3e286f14d4055651f1a22583f9606cac748462950bdfcf111724e070768cfa8be0af38d4b1ae604df134624f4eb9c66ba4bd72018003e66b57e1b20991c",                    
-            "capabilities": "mxc://raiden.network/cap?Receive=1&webRTC=1&Delivery=1&Mediate=1&toDevice=1&immutableMetadata=1"
-        },
-        "0x75f92B5cd58C97168B9fCF2CfB90b0aE3Efe0b25":{
-            "user_id": "@0x75f92b5cd58c97168b9fcf2cfb90b0ae3efe0b25:transport.transport01.raiden.network",
-            "displayname": "0x54d2a5834f70cad8d6020b9829ed70b0e674290ef3706bef17dd0102b60fd94e2073017d0ee67a6db9de329dc9f5954d2aa381a74448ae2fcdbaa8a3890d00f41c",                    
-            "capabilities": "mxc://raiden.network/cap?Receive=1&webRTC=1&Delivery=1&Mediate=1&toDevice=1&immutableMetadata=1"
-        },
-        "0x505F15FCa04b1EA9a6294E2C2e95606E4C284505":{
-            "user_id": "@0x505f15fca04b1ea9a6294e2c2e95606e4c284505:transport.transport01.raiden.network",
-            "displayname": "0xce1abecccee14b07d05329d8f97ec0334489de659259865ea686bccb9de4dd5a00a9df2022ced07e600ccfafa3340f293b8c05817c111d89def4179c67d12c5c1b",                    
-            "capabilities": "mxc://raiden.network/cap?Receive=1&webRTC=1&Delivery=1&Mediate=1&toDevice=1&immutableMetadata=1"
-        }
+
+    //"0x625F82D937ccA0f1fF0097864895ba91635309A3"  TTT 59
+
+    let users = {
+        //blue (left)
+        "0x294629Fc10aEbB0C1357F7CEB7Dc6Ca5c5c2282C": {"user_id": "@0x294629fc10aebb0c1357f7ceb7dc6ca5c5c2282c:transport.transport01.raiden.network", "capabilities": "mxc://raiden.network/cap?Receive=1&webRTC=1&Delivery=1&Mediate=1&toDevice=1&immutableMetadata=1", "displayname": "0x0bd025e88c25adb422c6ad07680e0fcf16f5246ed36a79975fb56c78fa8aef856d47ea77b6c36b48a02ddde5a0a4d06640de40da688ce37d21f96fef581531711b"},
+        //purple (middle)
+        "0x55e86d5357529De6193824963eA50CD8e1fECEef": {"user_id": "@0x55e86d5357529de6193824963ea50cd8e1feceef:transport.transport01.raiden.network", "capabilities": "mxc://raiden.network/cap?Receive=1&webRTC=1&Delivery=1&Mediate=1&toDevice=1&immutableMetadata=1", "displayname": "0xfb10211f1d00288e9cccecd2743ee31969451b994ca30ffa472155e2bc47283c3ae76a000ac39683843f001878e21a7be685ee474b3a19e4056788e21029c7801c"},
+        //red (right)
+        "0xC4c648D411b2c2a2CBD475257c8e1A92ABf45e79": {"user_id": "@0xc4c648d411b2c2a2cbd475257c8e1a92abf45e79:transport.transport01.raiden.network", "capabilities": "mxc://raiden.network/cap?Receive=1&webRTC=1&Delivery=1&Mediate=1&toDevice=1&immutableMetadata=1", "displayname": "0xb431a1a8dc6fc72c1c7ae77d7dbb508ae0c7613ac2b0dae1ef56bf9d51d714aa7c859ac3420d2da0d4d1b9b562bc811cfd5aa339a817340fd0990ffc6a91f5d31c"}
     };
 
-    let users = [
-        "0x45E3aC98Ad7590d1E84db4aE9CE146C878ba773a",
-        "0x505F15FCa04b1EA9a6294E2C2e95606E4C284505"
-    ]
-
-    let source = !reverse ? users[0] : users[1];
-    let target = !reverse ? users[1] : users[0];
+    let addresses = Object.keys(users);
+    
+    let source = !reverse ? addresses[0] : addresses[2];
+    let target = !reverse ? addresses[2] : addresses[0];
+    let mediator = addresses[1];
 
     return [
         {
-            address_metadata: known_addresses,
+            address_metadata: users,
             displayFee: "0", fee: "0x00", hops: 2, key: 0,
             path:[
                 source,
-                "0x75f92B5cd58C97168B9fCF2CfB90b0aE3Efe0b25",
+                mediator,
                 target,
             ]
         }
@@ -155,8 +175,13 @@ window.generatePaths = function(reverse){
 
 window.multihop = true;
 
+window.tokens = [
+    '0x59105441977ecD9d805A4f5b060E34676F50F806',
+    '0xC563388e2e2fdD422166eD5E76971D11eD37A466',    
+]
+
 window.transferTokens = async function(targetAddress, tokenAddress, amount, secrethash, reverseDirection){
-    if(!tokenAddress) tokenAddress = '0xC563388e2e2fdD422166eD5E76971D11eD37A466';// '0x59105441977ecD9d805A4f5b060E34676F50F806'; //'0xC563388e2e2fdD422166eD5E76971D11eD37A466';//                                         
+    if(!tokenAddress) tokenAddress = tokens[0];
     if(!amount) amount = 3000000000000000;
 
     let secret = !secrethash ? genSecret() : null;
@@ -169,7 +194,7 @@ window.transferTokens = async function(targetAddress, tokenAddress, amount, secr
     if(secret) knownSecrets[hashOfSecret] = secret;
 
     let paths = window.multihop ? generatePaths(reverseDirection) : undefined;
-    if(!targetAddress) targetAddress = '0x505F15FCa04b1EA9a6294E2C2e95606E4C284505'; //'0x2bd70741A88CB4058EAEBb7b7455958448D221F4';
+    if(!targetAddress) targetAddress = '0xC4c648D411b2c2a2CBD475257c8e1A92ABf45e79';
 
     await $vm0.$raiden.transfer( 
         tokenAddress,

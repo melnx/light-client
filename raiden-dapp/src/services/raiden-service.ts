@@ -606,13 +606,13 @@ export default class RaidenService {
     return this.raiden.getHashOfSecret(secret);
   }
 
-  revealSecretAndClaim(secret:string):void{
-    this.raiden.revealSecretAndClaim(secret);
+  revealSecretAndClaim(secret:string, tokenNetwork:string):void{
+    this.raiden.revealSecretAndClaim(secret, tokenNetwork);
   }
 
-  pushSecret(secret:string):void{
-    this.raiden.pushSecret(secret);
-  }
+  //pushSecret(secret:string):void{
+  //  this.raiden.pushSecret(secret);
+  //}
 
   async findRoutes(token: string, target: string, amount: BigNumber, raidenPFS?: RaidenPFS) {
     return await this.raiden.findRoutes(token, target, amount, {
